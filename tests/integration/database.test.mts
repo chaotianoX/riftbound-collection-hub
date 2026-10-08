@@ -198,6 +198,30 @@ test('P0 PostgreSQL: RLS, eligibility, ownership, lifecycle and concurrent alloc
       await assert.rejects(write(a,'set_line_printing',{deck_card_id:line,printing_id:null}),/Release allocations/);
       await write(a,'delete_deck',{deck_id:imported});
     });
+    await t.test('deck layout moves and merges atomically, preserves printings, and rejects foreign IDs or active reservations', async () => {
+      const write=async(action:string,payload:object)=>(await a.query('select public.mutate_workspace($1,$2::jsonb) id',[action,JSON.stringify(payload)])).rows[0].id;
+      const layout=async(client:pg.Client,action:string,payload:object)=>(await client.query('select public.edit_deck_layout($1,$2::jsonb) id',[action,JSON.stringify(payload)])).rows[0].id;
+      const deck=await write('create_deck',{name:'Layout test',mode:'physical'});
+      const main=await write('set_line',{deck_id:deck,card_id:card,section:'main',quantity:2,printing_id:print});
+      const bench=await write('set_line',{deck_id:deck,card_id:card,section:'bench',quantity:1,printing_id:print});
+      await assert.rejects(layout(other,'move_line',{deck_card_id:main,section:'bench'}),/Deck line not found/);
+      await layout(a,'move_line',{deck_card_id:main,section:'bench'});
+      assert.equal((await a.query('select quantity from public.deck_cards where id=$1',[bench])).rows[0].quantity,3);
+      assert.equal((await a.query('select id from public.deck_cards where id=$1',[main])).rowCount,0);
+      await write('allocate',{deck_card_id:bench,collection_entry_id:entry,quantity:1});
+      await assert.rejects(layout(a,'move_line',{deck_card_id:bench,section:'main'}),/Release allocations/);
+      await write('allocate',{deck_card_id:bench,collection_entry_id:entry,quantity:0});
+      await layout(a,'move_line',{deck_card_id:bench,section:'main'});
+      const unresolved=await write('set_line',{deck_id:deck,card_id:card,section:'bench',quantity:1});
+      await assert.rejects(layout(a,'move_line',{deck_card_id:bench,section:'bench'}),/Destination printing differs/);
+      assert.equal((await a.query('select section,preferred_printing_id from public.deck_cards where id=$1',[bench])).rows[0].section,'main');
+      await assert.rejects(layout(a,'reorder_lines',{deck_id:deck,section:'main',line_ids:[bench,bench]}),/Display order changed/);
+      await assert.rejects(layout(other,'reorder_lines',{deck_id:deck,section:'main',line_ids:[bench]}),/Deck not found/);
+      await layout(a,'reorder_lines',{deck_id:deck,section:'main',line_ids:[bench]});
+      assert.equal((await a.query('select display_order from public.deck_cards where id=$1',[bench])).rows[0].display_order,0);
+      assert.ok(unresolved);
+      await write('delete_deck',{deck_id:deck});
+    });
     await t.test('duplicate is theorycraft; conversion and deletion release allocations atomically', async () => {
       const copy = await rpc(a,'duplicate_deck',{ deck_id: deckA });
       assert.equal((await a.query('select mode from public.decks where id=$1', [copy])).rows[0].mode, 'theorycraft');

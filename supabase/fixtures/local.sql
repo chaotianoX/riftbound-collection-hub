@@ -18,7 +18,7 @@ begin
   category := case when i=2 then 'Legend' when i=3 then 'Battlefield' else 'Normal' end;
   rarity := case (i%4) when 1 then 'Common' when 2 then 'Uncommon' when 3 then 'Rare' else 'Epic' end;
   insert into public.cards(id,name,card_type,domains,collection_category,source_id)
-   values(cid,'TEST Card '||lpad(i::text,2,'0'),case when category='Normal' then 'Test unit' else category end,
+   values(cid,'TEST Card '||lpad(i::text,2,'0'),case when category='Normal' then 'Unit' else category end,
     array[case when i%2=0 then 'Test domain A' else 'Test domain B' end],category,'f0000000-0000-4000-8000-000000000001') on conflict(id) do nothing;
   insert into public.card_printings(id,card_id,set_id,card_number,language,rarity,variant,treatment,printed_text,source_id)
    values(pid,cid,sid,lpad((case when i<=32 then i else i-32 end)::text,3,'0'),'en',rarity,'standard',

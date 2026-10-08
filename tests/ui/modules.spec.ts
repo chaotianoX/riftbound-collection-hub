@@ -56,25 +56,29 @@ test('real local Auth, collection, wishlist, dashboard and physical deck lifecyc
   await write('set_owned',{printing_id:first,quantity:3});await page.reload();await expect(wish).toContainText('Goal 4 · Owned 3 · Remaining 1');
   await expect(wish.getByRole('textbox',{name:'Note',exact:true})).toHaveValue('Keep manual intention');
   await page.getByRole('link',{name:'Decks',exact:true}).click();
-  const create=page.locator('section').filter({has:page.getByRole('heading',{name:'Create a deck',exact:true})}).first();
+  await page.locator('.create-deck > summary').click();
+  const deckView=async()=>{const tab=page.getByRole('button',{name:/^Deck ·/});if(await tab.isVisible())await tab.click();};
+  const actions=async()=>{const details=page.locator('.deck-details');if(!await details.evaluate(el=>(el as HTMLDetailsElement).open))await details.locator(':scope > summary').click();};
+  const lineControls=async()=>{await deckView();const details=page.locator('.line-controls').first();if(!await details.evaluate(el=>(el as HTMLDetailsElement).open))await details.locator(':scope > summary').click();};
+  const create=page.locator('details').filter({has:page.getByRole('heading',{name:'Create a deck',exact:true})}).first();
   await create.getByLabel('Deck name',{exact:true}).fill('Physical A');await create.getByRole('combobox',{name:'Mode',exact:true}).selectOption('physical');await create.getByRole('button',{name:'Create deck',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Physical A',exact:true})).toBeVisible();
+  await deckView();await expect(page.getByRole('heading',{name:'Physical A',exact:true})).toBeVisible();await actions();
   const add=page.locator('section').filter({has:page.getByRole('heading',{name:'Add or update a card line',exact:true})}).last();
   await add.getByRole('combobox',{name:'Card identity',exact:true}).selectOption(card);await add.getByRole('combobox',{name:'Planned printing',exact:true}).selectOption(first);await add.getByLabel('Required quantity',{exact:true}).fill('2');await add.getByRole('button',{name:'Save card line',exact:true}).click();
-  const line=page.getByTestId('deck-line');await expect(line).toHaveCount(1);await line.getByLabel('Allocation quantity',{exact:true}).fill('2');await line.getByRole('button',{name:'Save allocation',exact:true}).click();
-  await expect(line).toContainText('Required 2 · Allocated 2');await expect(page.getByText('Legality:',{exact:false}).first()).toBeVisible();
+  const line=page.getByTestId('deck-line');await expect(line).toHaveCount(1);await lineControls();await line.getByLabel('Allocation quantity',{exact:true}).fill('2');await line.getByRole('button',{name:'Save allocation',exact:true}).click();
+  await expect(line).toContainText('Required 2 · Allocated 2');await expect(page.getByText('Legality',{exact:true}).first()).toBeVisible();
   // Reserved copies cannot be removed; error identifies the affected deck.
   await page.getByRole('link',{name:'Collection',exact:true}).click();await firstRow().getByRole('spinbutton').fill('1');await firstRow().getByRole('button',{name:'Save quantity',exact:true}).click();await expect(page.getByRole('main').getByRole('alert')).toContainText('Physical A');
   await page.reload();await expect(firstRow().getByRole('spinbutton')).toHaveValue('3');
-  await page.getByRole('link',{name:'Decks',exact:true}).click();await page.getByRole('button',{name:'Duplicate as theorycraft',exact:true}).click();await expect(page.getByRole('heading',{name:'Physical A copy',exact:true})).toBeVisible();await expect(page.getByTestId('deck-line')).toContainText('Allocated 0');
-  await page.getByRole('button',{name:'Physical A · physical',exact:true}).click();await page.getByRole('button',{name:'Switch to theorycraft & release reservations',exact:true}).click();await expect(page.getByTestId('deck-line')).toContainText('Allocated 0');
+  await page.getByRole('link',{name:'Decks',exact:true}).click();await actions();await page.getByRole('button',{name:'Duplicate as theorycraft',exact:true}).click();await deckView();await expect(page.getByRole('heading',{name:'Physical A copy',exact:true})).toBeVisible();await lineControls();await expect(page.getByTestId('deck-line')).toContainText('Allocated 0');
+  await page.getByRole('button',{name:'Physical A · physical',exact:true}).click();await actions();await page.getByRole('button',{name:'Switch to theorycraft & release reservations',exact:true}).click();await lineControls();await expect(page.getByTestId('deck-line')).toContainText('Allocated 0');
   await page.getByRole('button',{name:'Export text list',exact:true}).click();
   await expect(page.getByLabel('Deck list',{exact:true})).toContainText('Riftbound Hub TSV v1');
   await page.getByRole('button',{name:'Preview import',exact:true}).click();
   await expect(page.getByRole('heading',{name:'1 resolved lines',exact:true})).toBeVisible();
   await page.getByLabel('Imported deck name',{exact:true}).fill('Imported round trip');
   await page.getByRole('button',{name:'Import as theorycraft',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Imported round trip',exact:true})).toBeVisible();
+  await deckView();await expect(page.getByRole('heading',{name:'Imported round trip',exact:true})).toBeVisible();await lineControls();
   await expect(page.getByTestId('deck-line')).toContainText('Allocated 0');
   // The available inventory is restored, and masterset ownership stays fixed.
   const restored=await request.post(`${api}/rest/v1/rpc/workspace_snapshot`,{headers:{apikey:key!,Authorization:`Bearer ${session.access_token}`},data:{}});
