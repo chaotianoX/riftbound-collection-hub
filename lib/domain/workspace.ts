@@ -8,10 +8,10 @@ export type Printing = { id:string; card_id:string; set_id:string; set_code:stri
 export type InventoryEntry = { id:string; printing_id:string; owned:number; reserved:number; available:number };
 export type WishlistEntry = { id:string; printing_id:string; manual_target:number|null; include_masterset:boolean; include_decks:boolean; priority:'High'|'Medium'|'Low'; note:string };
 export type Deck = { id:string; name:string; mode:'theorycraft'|'physical'; format:string|null; legality_status:'Unverified' };
-export type DeckLine = { id:string; deck_id:string; card_id:string; section:string; quantity:number; preferred_printing_id:string|null };
+export type DeckLine = { id:string; deck_id:string; card_id:string; section:string; quantity:number; preferred_printing_id:string|null; display_order?:number };
 export type Allocation = { id:string; deck_card_id:string; collection_entry_id:string; quantity:number };
 export type Snapshot = {
-  printings:Printing[]; cards:{ id:string; name:string; card_type:string|null; domains:string[] }[];
+  printings:Printing[]; cards:{ id:string; name:string; card_type:string|null; domains:string[]; attributes?:Record<string,unknown> }[];
   sets:{ id:string; code:string; name:string; sort_order:number }[];
   products:{ id:string; name:string; is_proving_grounds:boolean; checklist_verified:boolean }[];
   contents:{ product_id:string; printing_id:string; published_quantity:number|null }[];
