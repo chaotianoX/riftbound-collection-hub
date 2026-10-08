@@ -1,0 +1,1 @@
+# riftbound-collection-hub
