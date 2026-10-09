@@ -1,0 +1,22 @@
+import {test,expect} from '@playwright/test';
+test('catalog partial status, preview labels and image fallback in desktop and mobile views',async({page},info)=>{
+  test.skip(!process.env.RIFTBOUND_LOCAL_TEST,'Requires disposable real local Auth and TEST ONLY fixtures');
+  const email=`catalog-${info.project.name}-${Date.now()}@example.test`;
+  await page.goto('/settings');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill('Local-test-only-Password-123!');
+  await page.getByRole('button',{name:'Create account',exact:true}).click();await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  await page.getByRole('link',{name:'Dashboard',exact:true}).click();
+  await expect(page.getByText('Last catalog import: partial · TEST ONLY',{exact:true})).toBeVisible();
+  await expect(page.getByText(/2 unresolved editions/)).toBeVisible();
+  await page.getByRole('link',{name:'Collection',exact:true}).click();
+  const card=page.getByTestId('collection-card').filter({has:page.getByRole('link',{name:'TEST Card 01',exact:true})});
+  await expect(card.getByText('Previewed · Unreleased',{exact:true})).toBeVisible();
+  await expect(card.getByRole('img',{name:'TEST Card 01: image unavailable'})).toBeVisible();
+  await card.getByRole('link',{name:'TEST Card 01',exact:true}).click();await expect(page.getByText('Previewed · Unreleased',{exact:true})).toBeVisible();
+  await page.getByRole('link',{name:'Decks',exact:true}).click();
+  await page.locator('.create-deck > summary').click();await page.getByLabel('Deck name',{exact:true}).fill('Catalog preview TEST ONLY');await page.getByRole('button',{name:'Create deck',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Catalog preview TEST ONLY · theorycraft',exact:true})).toBeVisible();
+  await page.getByLabel('Search cards',{exact:true}).fill('OGN 001');
+  const library=page.getByTestId('library-card');await expect(library).toHaveCount(1);await expect(library.getByText('Previewed · Unreleased',{exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:info.outputPath(`catalog-${info.project.name}.png`),fullPage:true});
+});

@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, pointerWithin, rectIntersection, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type KeyboardCoordinateGetter } from '@dnd-kit/core';
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, pointerWithin, rectIntersection, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type KeyboardCoordinateGetter, type CollisionDetection } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useWorkspace } from './workspace-context';
@@ -20,8 +20,19 @@ const keyboardSections: KeyboardCoordinateGetter = (event,{context}) => {
   const current = targets.findIndex(c => c.data.current?.section === context.over?.data.current?.section);
   const step = event.code === 'ArrowUp' || event.code === 'ArrowLeft' ? -1 : 1;
   const next = targets[(current+step+targets.length)%targets.length];
-  const rect = next && context.droppableRects.get(next.id);
+  // Destinations can be inside the other independently scrolling panel.
+  const node=next?.node.current;
+  node?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'instant'});
+  const rect=node?.getBoundingClientRect()??(next && context.droppableRects.get(next.id));
   return rect ? {x:rect.left+(rect.width-(context.collisionRect?.width ?? 0))/2,y:rect.top+(rect.height-(context.collisionRect?.height ?? 0))/2} : undefined;
+};
+// Library drags target sections; deck-line drags retain sortable line targets.
+const deckCollisions:CollisionDetection=incoming=>{
+  const args=incoming.active.data.current?.kind==='library'
+    ?{...incoming,droppableContainers:incoming.droppableContainers.filter(c=>c.data.current?.kind==='section')}:incoming;
+  const hits=pointerWithin(args);
+  const lineHits=hits.filter(hit=>args.droppableContainers.find(c=>c.id===hit.id)?.data.current?.kind==='line');
+  return lineHits.length?lineHits:hits.length?hits:args.pointerCoordinates?rectIntersection(args):closestCenter(args);
 };
 function Artwork({s,printingId,name}:{s:Snapshot;printingId:string|null;name:string}) {
   const image = s.images.find(i => i.printing_id === printingId);
@@ -88,7 +99,7 @@ export function DeckBuilder({deck,initialCard='',initialPrinting=''}:{deck:Deck;
   const selectedNames = (section:string) => lines.filter(l => l.section === section).map(l => s.cards.find(c => c.id === l.card_id)?.name ?? 'Unknown card').join(', ') || 'Not selected';
   const unique = (key:'card_type'|'rarity') => [...new Set(catalog.map(r => r[key]).filter((x):x is string => !!x))].sort();
   const costs = [...new Set(s.cards.map(c => costOf(s,c.id)).filter((x):x is number => x !== null))].sort((a,b) => a-b);
-  return <DndContext sensors={sensors} collisionDetection={args => {const hits=pointerWithin(args);const lineHits=hits.filter(hit=>args.droppableContainers.find(c=>c.id===hit.id)?.data.current?.kind==='line');return lineHits.length?lineHits:hits.length?hits:args.pointerCoordinates?rectIntersection(args):closestCenter(args);}} onDragStart={e => {setFeedback(null);setActive(e.active.data.current as DragCard);}} onDragCancel={() => setActive(null)} onDragEnd={e => void drop(e)} accessibility={{screenReaderInstructions:{draggable:'Press Space to pick up a card. Use arrow keys to choose a valid deck section, Space to drop, or Escape to cancel. Quick-add and Move to controls are also available.'},announcements:{onDragStart:({active})=>`Picked up ${active.data.current?.name ?? 'card'}.`,onDragOver:({over})=>over?`Over ${over.data.current?.section ?? 'deck'}.`:'Outside deck sections.',onDragEnd:()=> 'Drop finished. Check the save status for confirmation.',onDragCancel:()=> 'Drag cancelled. No changes saved.'}}}>
+  return <DndContext sensors={sensors} collisionDetection={deckCollisions} onDragStart={e => {setFeedback(null);setActive(e.active.data.current as DragCard);}} onDragCancel={() => setActive(null)} onDragEnd={e => void drop(e)} accessibility={{screenReaderInstructions:{draggable:'Press Space to pick up a card. Use arrow keys to choose a valid deck section, Space to drop, or Escape to cancel. Quick-add and Move to controls are also available.'},announcements:{onDragStart:({active})=>`Picked up ${active.data.current?.name ?? 'card'}.`,onDragOver:({over})=>over?`Over ${over.data.current?.section ?? 'deck'}.`:'Outside deck sections.',onDragEnd:()=> 'Drop finished. Check the save status for confirmation.',onDragCancel:()=> 'Drag cancelled. No changes saved.'}}}>
     <div className="builder-mobile-tabs" role="group" aria-label="Deck builder view"><button type="button" aria-pressed={view==='library'} onClick={() => setView('library')}>Library</button><button type="button" aria-pressed={view==='deck'} onClick={() => setView('deck')}>Deck · {summary.required}</button></div>
     {feedback && <div className={`builder-feedback ${feedback.ok?'success':'failure'}`} role={feedback.ok?'status':'alert'}>{feedback.message}{!feedback.ok && <span> Your last confirmed deck remains visible. Review allocation or printing controls, then retry the action.</span>}</div>}
     <div className="deck-builder" data-mobile-view={view}>
@@ -138,7 +149,7 @@ function LibraryCard({row,s,disabled,destination,preferred,onAdd}:{row:Collectio
   const valid = accepts(row.card_type,destination);
   return <article ref={setNodeRef} className={`library-card ${isDragging?'dragging':''} ${preferred?'preferred-printing':''}`} data-testid="library-card">
     <div className="library-art"><Artwork s={s} printingId={row.id} name={row.name}/><button type="button" className="drag-handle" {...attributes} {...listeners} disabled={disabled} aria-label={`Drag ${row.name}, ${row.set_code} ${row.card_number ?? '?'}`}>⠿</button></div>
-    <div className="library-card-body"><h3>{row.name}</h3><p className="card-meta">{row.set_code} {row.card_number ?? '?'} · {row.rarity ?? 'Unknown rarity'}</p><p className="printing-meta">{row.treatment} · {row.language} · {row.card_type ?? 'Unknown type'}</p><p className="library-counts">Owned <b>{row.owned}</b> · Reserved <b>{row.reserved}</b> · Available <b>{row.available}</b></p>
+    <div className="library-card-body"><h3>{row.name}</h3>{row.previewed&&<span className="badge">Previewed · Unreleased</span>}<p className="card-meta">{row.set_code} {row.card_number ?? '?'} · {row.rarity ?? 'Unknown rarity'}</p><p className="printing-meta">{row.treatment} · {row.language} · {row.card_type ?? 'Unknown type'}</p><p className="library-counts">Owned <b>{row.owned}</b> · Reserved <b>{row.reserved}</b> · Available <b>{row.available}</b></p>
       <button type="button" className="quick-add" disabled={disabled||!valid} aria-label={`Add ${row.name}, ${row.set_code} ${row.card_number ?? '?'} to ${destination || 'deck'}`} onClick={() => onAdd(destination)}>+ Add{valid?` to ${destination}`:''}</button>{!valid && <small>Choose a matching category. Unknown types require catalog resolution.</small>}
     </div>
   </article>;
@@ -157,7 +168,7 @@ function DeckCard({line,deck,s,disabled,sectionOptions,onQuantity,onMove,onOrder
   const {setNodeRef,attributes,listeners,transform,transition,isDragging} = useSortable({id:`line:${line.id}`,data,disabled});
   const assigned = s.allocations.filter(a => a.deck_card_id===line.id).reduce((n,a) => n+a.quantity,0);
   return <article ref={setNodeRef} className={`builder-deck-card ${isDragging?'dragging':''}`} style={{transform:CSS.Transform.toString(transform),transition}} data-testid="builder-deck-card">
-    <div className="deck-card-row"><button type="button" className="drag-handle" {...attributes} {...listeners} disabled={disabled} aria-label={`Drag deck line ${name}`}>⠿</button><div className="deck-thumbnail"><Artwork s={s} printingId={line.preferred_printing_id} name={name}/></div><div className="deck-card-name"><strong>{name}</strong><small>{line.preferred_printing_id ? s.printings.filter(p => p.id===line.preferred_printing_id).map(p => `${p.set_code} ${p.card_number ?? '?'}`).join('') : 'Printing unresolved'}</small><small>{deck.mode==='physical'?`${assigned}/${line.quantity} allocated · ${line.quantity-assigned} unallocated`:'No physical reservation'}</small></div>
+    <div className="deck-card-row"><button type="button" className="drag-handle" {...attributes} {...listeners} disabled={disabled} aria-label={`Drag deck line ${name}`}>⠿</button><div className="deck-thumbnail"><Artwork s={s} printingId={line.preferred_printing_id} name={name}/></div><div className="deck-card-name"><strong>{name}</strong>{s.printings.find(p=>p.id===line.preferred_printing_id)?.previewed&&<span className="badge">Previewed · Unreleased</span>}<small>{line.preferred_printing_id ? s.printings.filter(p => p.id===line.preferred_printing_id).map(p => `${p.set_code} ${p.card_number ?? '?'}`).join('') : 'Printing unresolved'}</small><small>{deck.mode==='physical'?`${assigned}/${line.quantity} allocated · ${line.quantity-assigned} unallocated`:'No physical reservation'}</small></div>
       <div className="line-quantity"><button type="button" disabled={disabled} className="secondary" aria-label={`Decrease ${name}`} onClick={() => onQuantity(line.quantity-1)}>−</button><output aria-label={`${name} quantity`}>{line.quantity}</output><button type="button" disabled={disabled||line.quantity>=2147483647} className="secondary" aria-label={`Increase ${name}`} onClick={() => onQuantity(line.quantity+1)}>+</button></div>
     </div>
     <details className="line-controls"><summary>Printing, allocation & actions</summary><div className="line-tools"><label>Move to<select value={line.section} disabled={disabled} onChange={e => onMove(e.target.value)}>{sectionOptions.filter(x => x.id===line.section || accepts(card?.card_type ?? null,x.id)).map(x => <option key={x.id} value={x.id}>{x.label}</option>)}</select></label><button type="button" className="secondary" disabled={disabled||!canUp} onClick={() => onOrder(-1)}>Move up</button><button type="button" className="secondary" disabled={disabled||!canDown} onClick={() => onOrder(1)}>Move down</button><button type="button" className="danger" disabled={disabled} onClick={() => onQuantity(0)}>Remove {name}</button></div>

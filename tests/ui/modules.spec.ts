@@ -62,11 +62,11 @@ test('real local Auth, collection, wishlist, dashboard and physical deck lifecyc
   const lineControls=async()=>{await deckView();const details=page.locator('.line-controls').first();if(!await details.evaluate(el=>(el as HTMLDetailsElement).open))await details.locator(':scope > summary').click();};
   const create=page.locator('details').filter({has:page.getByRole('heading',{name:'Create a deck',exact:true})}).first();
   await create.getByLabel('Deck name',{exact:true}).fill('Physical A');await create.getByRole('combobox',{name:'Mode',exact:true}).selectOption('physical');await create.getByRole('button',{name:'Create deck',exact:true}).click();
-  await deckView();await expect(page.getByRole('heading',{name:'Physical A',exact:true})).toBeVisible();await actions();
+  await expect(page.getByRole('button',{name:'Physical A · physical',exact:true})).toBeVisible();await deckView();await expect(page.getByRole('heading',{name:'Physical A',exact:true})).toBeVisible();await actions();
   const add=page.locator('section').filter({has:page.getByRole('heading',{name:'Add or update a card line',exact:true})}).last();
   await add.getByRole('combobox',{name:'Card identity',exact:true}).selectOption(card);await add.getByRole('combobox',{name:'Planned printing',exact:true}).selectOption(first);await add.getByLabel('Required quantity',{exact:true}).fill('2');await add.getByRole('button',{name:'Save card line',exact:true}).click();
   const line=page.getByTestId('deck-line');await expect(line).toHaveCount(1);await lineControls();await line.getByLabel('Allocation quantity',{exact:true}).fill('2');await line.getByRole('button',{name:'Save allocation',exact:true}).click();
-  await expect(line).toContainText('Required 2 · Allocated 2');await expect(page.getByText('Legality',{exact:true}).first()).toBeVisible();
+  await expect(line).toContainText('Required 2 · Allocated 2');await expect(page.locator('.deck-status-grid').getByText('Legality Unverified',{exact:true})).toBeVisible();
   // Reserved copies cannot be removed; error identifies the affected deck.
   await page.getByRole('link',{name:'Collection',exact:true}).click();await firstRow().getByRole('spinbutton').fill('1');await firstRow().getByRole('button',{name:'Save quantity',exact:true}).click();await expect(page.getByRole('main').getByRole('alert')).toContainText('Physical A');
   await page.reload();await expect(firstRow().getByRole('spinbutton')).toHaveValue('3');

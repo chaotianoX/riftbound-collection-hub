@@ -1,0 +1,14 @@
+{
+  "sets": [
+    { "code": "OGN", "name": "Origins", "order": 10, "releasedOn": "2025-10-31" },
+    { "code": "OGS", "name": "Origins - Proving Grounds", "order": 15, "releasedOn": "2025-10-31" },
+    { "code": "SFD", "name": "Spiritforged", "order": 20, "releasedOn": "2026-02-13" },
+    { "code": "UNL", "name": "Unleashed", "order": 30, "releasedOn": "2026-05-08" },
+    { "code": "VEN", "name": "Vendetta", "order": 40, "releasedOn": "2026-07-31" },
+    { "code": "RAD", "name": "Radiance", "order": 50, "releasedOn": "2026-10-23" }
+  ],
+  "canonical": {},
+  "printings": {},
+  "images": null,
+  "provingGrounds": null
+}

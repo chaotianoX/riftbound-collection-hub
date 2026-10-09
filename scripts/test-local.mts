@@ -73,7 +73,22 @@ try {
     grant usage on schema auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;`);
   const migrations=new URL('../supabase/migrations/',import.meta.url);
   for(const name of (await readdir(migrations)).filter(n=>n.endsWith('.sql')).sort())await database.query(await readFile(new URL(name,migrations),'utf8'));
-  await database.query(await readFile(new URL('../supabase/fixtures/local.sql',import.meta.url),'utf8'));
+  if(process.env.P0_CATALOG_FILE){
+    const version=process.env.P0_CATALOG_VERSION;if(!version || !/^v\d{4}-\d{2}-\d{2}$/.test(version))throw new Error('Pinned preview requires P0_CATALOG_VERSION.');
+    const {buildPlan,validateReview,digest}=await import('../lib/catalog/normalize');
+    const {publishCatalog,reviewChecksum}=await import('../lib/catalog/publish');
+    const bytes=await readFile(process.env.P0_CATALOG_FILE);
+    if(digest(bytes)!==process.env.P0_CATALOG_SHA256)throw new Error('Pinned catalog preview checksum mismatch.');
+    const review=validateReview(JSON.parse(await readFile(new URL('../config/catalog-review.json',import.meta.url),'utf8')));
+    const plan=buildPlan(JSON.parse(bytes.toString('utf8')),review);
+    await publishCatalog(database,plan,review,{version,checksum:digest(bytes),retrievedAt:new Date().toISOString(),reviewChecksum:reviewChecksum(review)},new Map());
+    await database.query(`insert into public.catalog_sync_runs(status,version,finished_at,counts,unresolved) values('partial',$1,now(),$2,$3)`,[version,JSON.stringify(plan.counts),plan.unresolved.length]);
+  }else{
+    await database.query(await readFile(new URL('../supabase/fixtures/local.sql',import.meta.url),'utf8'));
+    // Synthetic import-status/preview fixtures for browser verification only.
+    await database.query(`update public.card_printings set previewed=true where id='f3000000-0000-4000-8000-000000000001';
+      insert into public.catalog_sync_runs(provider,status,version,finished_at,unresolved) values('TEST ONLY importer','partial','TEST ONLY',now(),2);`);
+  }
   const rest=runContainer('ghcr.io/supabase/postgrest:v16.4','rest',3000,{
     PGRST_DB_URI:'postgres://authenticator@db:5432/postgres',PGRST_DB_SCHEMAS:'public',PGRST_DB_ANON_ROLE:'anon',PGRST_JWT_SECRET:secret,
   });upstreamRest=rest.port;await waitFor(`http://127.0.0.1:${rest.port}/`);
@@ -82,10 +97,10 @@ try {
   if(!registration.ok||!account.access_token)throw new Error('Local Auth smoke registration failed');
   const smoke=await fetch(`${api}/rest/v1/rpc/workspace_snapshot`,{method:'POST',headers:{apikey:key,Authorization:`Bearer ${account.access_token}`,'Content-Type':'application/json'},body:'{}'});
   if(!smoke.ok){const failure=await smoke.json();throw new Error(`Workspace RPC smoke failed: ${failure.code}: ${failure.message}`);}
-  const env={...process.env,NEXT_PUBLIC_SUPABASE_URL:api,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:key,RIFTBOUND_LOCAL_TEST:'1'};
-  console.log('Local real GoTrue/PostgREST/PostgreSQL ready. TEST ONLY fixture catalog loaded.');
+  const env={...process.env,NEXT_PUBLIC_SUPABASE_URL:api,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:key,RIFTBOUND_LOCAL_TEST:'1',RIFTBOUND_REAL_CATALOG_TEST:process.env.P0_CATALOG_FILE?'1':undefined};
+  console.log(`Local real GoTrue/PostgREST/PostgreSQL ready. ${process.env.P0_CATALOG_FILE?'Pinned community catalog loaded in disposable database; no artwork authorization claimed.':'TEST ONLY fixture catalog loaded.'}`);
   await command(['run','build'],env);
-  await command(['run','test:ui'],{...env,CI:'1'});
+  await command(['run','test:ui',...(process.env.P0_UI_GREP?['--','--grep',process.env.P0_UI_GREP]:[])],{...env,CI:'1'});
 } finally {
   gateway.close();await database?.end().catch(()=>{});
   for(const id of [...containers].reverse()){try{docker(['stop',id]);}catch{}}

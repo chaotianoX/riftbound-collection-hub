@@ -29,6 +29,7 @@ export function Workspace({screen,initial,printingId}:{screen:Screen;initial:Sna
   return <WorkspaceContext.Provider value={{s:initial,busy,run,saveState:saving?'saving':refreshing?'refreshing':notice?(notice.ok?'saved':'error'):'idle'}}>
     <div className={`shell ${screen==='decks'?'deck-shell':''}`}><Navigation/><main id="content">
     {initial.printings.some(p=>p.is_fixture)&&<div className="fixture-banner" role="status"><strong>TEST ONLY DATA</strong> · Synthetic local fixtures, not official Riot cards or a verified checklist. No official images or legality are provided.</div>}
+    {initial.catalogSync&&<div className="fixture-banner" role="status">Catalog: {initial.printings.some(p=>p.is_fixture)?'TEST ONLY import rehearsal':'community mirror'} · Last import {initial.catalogSync.status}{initial.catalogSync.version?` (${initial.catalogSync.version})`:''}. {initial.catalogSync.status==='error'&&'Previous successful catalog remains in use. '} {initial.catalogSync.unresolved>0&&`${initial.catalogSync.unresolved} editions await review. `}{initial.images.length===0&&'Artwork authorization pending; placeholders shown.'}</div>}
     {busy&&<p className="save-notice" role="status">{saving?'Saving…':'Refreshing workspace…'}</p>}
     {notice&&<div className={`save-notice ${notice.ok?'success':'failure'}`} role={notice.ok?'status':'alert'}>{notice.message}</div>}
     <fieldset className="workspace-fieldset" disabled={busy}>

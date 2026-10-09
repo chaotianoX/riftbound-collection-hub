@@ -45,7 +45,7 @@ No se requiere una clave privilegiada para usar la web. No conectar esta prueba 
 5. Dashboard: comparar métricas con las pantallas detalladas. Legality sigue Unverified; inventory Allocated no significa legalidad ni Ready.
 6. Decks import/export: exportar una lista TSV, revisar preview y crear una nueva copia theorycraft sin modificar la colección.
 
-**El catálogo de prueba no es Riot.** Sólo ejercita OGN antes de SFD, rareza/tratamientos y un producto sintético `TEST ONLY simulated Proving Grounds`. No acredita el checklist oficial completo ni trae imágenes/reglas oficiales. Falta una fuente autorizada y condiciones de uso para importación real. Los tipos no confirmados conservan objetivo NULL, no se excluyen del checklist por falta de objetivo.
+**El catálogo de prueba no es Riot.** Sólo ejercita OGN antes de SFD, rareza/tratamientos y un producto sintético `TEST ONLY simulated Proving Grounds`. No acredita el checklist oficial completo ni trae imágenes/reglas oficiales. El propietario seleccionó un mirror comunitario para la ingesta real; la autorización de imágenes y el checklist oficial completo se revisan por separado. Consulta [ingesta de catálogo](docs/CATALOG-INGESTION.md). Los tipos no confirmados conservan objetivo NULL, no se excluyen del checklist por falta de objetivo.
 
 ## Verificaciones
 
@@ -76,7 +76,15 @@ Genera tipos del esquema local sólo si el CLI termina correctamente. El contrat
 
 - `202610080001_foundation.sql`: P0 original, sin modificar.
 - `202610080002_workspace.sql`: evolución aditiva para P1/P2/P3, wishlist, preferencias, impresión elegida, RPC y snapshot.
+- `202610080003_deck_builder_layout.sql`: orden y movimiento de líneas de mazo.
+- `202610080004_catalog_ingestion.sql`: claves de importación administrativas, estados de sincronización y previews; no altera inventarios.
 
 Para datos P0 locales existentes usar `migration up --local`; **no** `db reset`. `db reset --local` sólo sirve para recrear una BD local descartable, destruye sus datos y reaplica todas las migraciones. No ejecutar migraciones o fixtures en producción desde estas instrucciones. Una migración aplicada se evoluciona mediante otra migración; no se edita ni borra. Backup/restore de producción siguen pendientes antes de lanzamiento y requieren un plan aprobado.
 
 Detalles de semántica, criterios, decisiones y verificaciones: [docs/P1-P3.md](docs/P1-P3.md). Diagnóstico histórico de fundamentos: [docs/P0.md](docs/P0.md). Esta entrega no declara terminado el producto: quedan dataset/checklist oficial, perfiles legales, ingesta de imágenes/Storage, erratas/reglas/RAG y preparación de lanzamiento.
+
+## Catálogo comunitario y Radiance
+
+`npm run catalog:import -- --report /tmp/catalog-review.json` previsualiza la release de LouisCourrian/riftbound-cards, incluye todos los sets conocidos y aplica los filtros de ediciones base. No publica por defecto. La publicación administrativa, sus requisitos, los permisos de imágenes y la excepción completa de Proving Grounds se documentan en [docs/CATALOG-INGESTION.md](docs/CATALOG-INGESTION.md).
+
+La app todavía no está registrada con Riot: está preparado el [borrador para solicitar registro y acceso autorizado](docs/RIOT-REGISTRATION.md), sin enviar la solicitud ni habilitar imágenes. La [revisión de Proving Grounds](docs/PROVING-GROUNDS-REVIEW.md) documenta el tratamiento original no foil de OGS y los 24 registros pendientes; no declara completa la composición de la caja. El dataset propuesto de Hugging Face es un espejo comunitario, no una autorización específica de la app. Esta rama se publica para revisión con esos pendientes explícitos; no configura producción.

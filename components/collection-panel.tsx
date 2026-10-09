@@ -36,7 +36,7 @@ export function OwnedForm({row}:{row:CollectionRow}) {
     <button disabled={busy}>Save quantity</button></form>;
 }
 export function CardFacts({row}:{row:CollectionRow}) {
-  return <><p className="card-meta">{row.set_code} {row.card_number??'CARD # missing'} · {row.rarity??'Rarity unknown'} · {row.treatment==='nonfoil'?'Non-foil':row.treatment} · {row.language}</p>
+  return <>{row.previewed&&<p className="badge">Previewed · Unreleased</p>}<p className="card-meta">{row.set_code} {row.card_number??'CARD # missing'} · {row.rarity??'Rarity unknown'} · {row.treatment==='nonfoil'?'Non-foil':row.treatment} · {row.language}</p>
     <p className="muted">{row.card_type??'Type unknown'} · {row.domains.join(', ')||'Domain unknown'}</p>
     <dl className="inventory-facts"><div><dt>Owned</dt><dd>{row.owned}</dd></div><div><dt>Reserved</dt><dd>{row.reserved}</dd></div><div><dt>Available</dt><dd>{row.available}</dd></div><div><dt>Target / Missing / Excess</dt><dd>{row.goal??'Pending'} / {row.missing??'—'} / {row.excess??'—'}</dd></div></dl></>;
 }

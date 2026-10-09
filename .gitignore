@@ -8,3 +8,5 @@ supabase/.branches/
 coverage/
 test-results/
 playwright-report/
+
+.catalog-cache/

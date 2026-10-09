@@ -4,13 +4,14 @@ export type SortField = 'canonical' | 'name' | 'rarity' | 'type' | 'domain' | 'o
 export type SortPreference = { field: SortField; direction: 'asc' | 'desc' };
 export const defaultSort: SortPreference = { field: 'canonical', direction: 'asc' };
 export const sortLabels: Record<SortField,string> = { canonical:'Set / CARD #', name:'Name', rarity:'Rarity', type:'Card type', domain:'Domain', owned:'Owned quantity', missing:'Missing quantity', priority:'Priority', desired:'Desired quantity' };
-export type Printing = { id:string; card_id:string; set_id:string; set_code:string; sort_order:number; card_number:string|null; name:string; card_type:string|null; domains:string[]; rarity:string|null; language:string; treatment:string; variant:string; printed_text:string|null; eligible:boolean; collection_category:CollectionCategory; eligibility_basis:string; is_fixture:boolean; source_url:string; source_version:string };
+export type Printing = { id:string; card_id:string; set_id:string; set_code:string; sort_order:number; card_number:string|null; name:string; card_type:string|null; domains:string[]; rarity:string|null; language:string; treatment:string; variant:string; printed_text:string|null; eligible:boolean; collection_category:CollectionCategory; eligibility_basis:string; is_fixture:boolean; source_url:string; source_version:string; previewed?:boolean };
 export type InventoryEntry = { id:string; printing_id:string; owned:number; reserved:number; available:number };
 export type WishlistEntry = { id:string; printing_id:string; manual_target:number|null; include_masterset:boolean; include_decks:boolean; priority:'High'|'Medium'|'Low'; note:string };
 export type Deck = { id:string; name:string; mode:'theorycraft'|'physical'; format:string|null; legality_status:'Unverified' };
 export type DeckLine = { id:string; deck_id:string; card_id:string; section:string; quantity:number; preferred_printing_id:string|null; display_order?:number };
 export type Allocation = { id:string; deck_card_id:string; collection_entry_id:string; quantity:number };
 export type Snapshot = {
+  catalogSync?:{provider:string;status:'running'|'success'|'partial'|'error';started_at:string;finished_at:string|null;version:string|null;unresolved:number;images_ready:number;images_failed:number;retained:number;counts:Record<string,number>}|null;
   printings:Printing[]; cards:{ id:string; name:string; card_type:string|null; domains:string[]; attributes?:Record<string,unknown> }[];
   sets:{ id:string; code:string; name:string; sort_order:number }[];
   products:{ id:string; name:string; is_proving_grounds:boolean; checklist_verified:boolean }[];

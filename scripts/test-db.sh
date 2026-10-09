@@ -13,4 +13,4 @@ for attempt in $(seq 1 30); do
 done
 docker_local exec "$container_id" pg_isready -U postgres >/dev/null
 port=$(docker_local port "$container_id" 5432/tcp)
-P0_DISPOSABLE_DB=1 P0_TEST_PG_PORT="${port##*:}" node --import tsx --test tests/integration/database.test.mts
+P0_DISPOSABLE_DB=1 P0_TEST_PG_PORT="${port##*:}" node --import tsx --input-type=module -e "await import('./tests/integration/database.test.mts'); await import('./tests/integration/catalog.test.mts');"

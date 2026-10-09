@@ -1,4 +1,4 @@
-# Riftbound Collection Hub — BLUEPRINT v3.1
+# Riftbound Collection Hub — BLUEPRINT v3.2
 
 Repositorio previsto: `riftbound-collection-hub` (privado). Ubicación: raíz del repositorio.
 Fecha de preparación: 2026-10-08. Idioma de especificación: español. Idioma del producto: English.
@@ -276,12 +276,13 @@ Para el producto completo: módulos COL/MST/WSH/DCK/DSH/RUL operativos, fuentes/
 | --- | --- | --- |
 | 2026-10-08 | 3.0 reconstruida | Requisitos explícitos consolidados; detalles propuestos y limitación de procedencia declarados; fuentes oficiales iniciales verificadas. |
 | 2026-10-08 | 3.1 | Ediciones por rareza; inclusión completa de Proving Grounds según Riot; orden inicial por set/CARD # y opciones de orden en colección/wishlist; modelo, criterios y verificaciones alineados. |
+| 2026-10-08 | 3.2 | Fuente comunitaria y alcance de todos los sets, incluida Radiance, confirmados por el propietario; autorización de imágenes y composición oficial de Proving Grounds siguen requiriendo evidencia. |
 
 ## 13. Decisiones pendientes del propietario
 
 Resolver cuando afecten una implementación, sin bloquear trabajo independiente:
 
-1. Qué otros sets/productos forman el alcance inicial y qué dataset autorizado provee cartas e imágenes. Proving Grounds está confirmado; identificar su lista oficial completa y versiones, sin inferir contenidos.
+1. Alcance confirmado por el propietario: todos los sets presentes en el catálogo hasta la fecha, incluidas las cartas reveladas de Radiance. Fuente seleccionada: https://github.com/LouisCourrian/riftbound-cards (mirror comunitario; no implica verificación oficial ni derechos sobre imágenes). Mantener revisión independiente de autorización de assets, tratamientos y lista oficial completa de Proving Grounds, sin inferir contenidos ni aplicar foil por rareza a OGS. Identificar y etiquetar cartas preview/unreleased; no asumir que Radiance está completo.
 2. Qué objetivo masterset corresponde a categorías fuera de normal/Legend/Battlefield, y si se incluyen fuera de Proving Grounds. No aplicar automáticamente un objetivo de 3 a tipos no confirmados ni excluirlos del checklist completo de Proving Grounds.
 3. Si reimpresiones equivalentes cuentan entre sets o mantienen objetivos separados (propuesta actual: separados para masterset).
 4. Formato(s) oficial(es) a validar primero, equivalencias de impresiones e idioma permitido para asignaciones físicas.
